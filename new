@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Smoothing Filter</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 20px; }
+    canvas { border: 1px solid #000; margin-top: 10px; }
+    input { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Upload Image and Apply Pixel Neighborhood Averaging</h2>
+  <input type="file" id="upload" accept="image/*">
+  <br><br>
+  <canvas id="originalCanvas" width="400" height="400"></canvas>
+  <canvas id="filteredCanvas" width="400" height="400"></canvas>
+
+  <script>
+    const upload = document.getElementById('upload');
+    const originalCanvas = document.getElementById('originalCanvas');
+    const filteredCanvas = document.getElementById('filteredCanvas');
+    const oCtx = originalCanvas.getContext('2d');
+    const fCtx = filteredCanvas.getContext('2d');
+
+    upload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      const img = new Image();
+      img.onload = () => {
+        originalCanvas.width = img.width;
+        originalCanvas.height = img.height;
+        filteredCanvas.width = img.width;
+        filteredCanvas.height = img.height;
+
+        oCtx.drawImage(img, 0, 0);
+        applyNeighborhoodAveraging();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    function applyNeighborhoodAveraging() {
+      const imageData = oCtx.getImageData(0, 0, originalCanvas.width, originalCanvas.height);
+      const data = imageData.data;
+      const width = imageData.width;
+      const height = imageData.height;
+
+      const output = new Uint8ClampedArray(data); // copy of original
+
+      const getIndex = (x, y) => (y * width + x) * 4;
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          let r = 0, g = 0, b = 0;
+
+          // 3x3 average
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const index = getIndex(x + dx, y + dy);
+              r += data[index];
+              g += data[index + 1];
+              b += data[index + 2];
+            }
+          }
+
+          const i = getIndex(x, y);
+          output[i] = r / 9;
+          output[i + 1] = g / 9;
+          output[i + 2] = b / 9;
+        }
+      }
+
+      const newImageData = new ImageData(output, width, height);
+      fCtx.putImageData(newImageData, 0, 0);
+    }
+  </script>
+</body>
+</html>
+
